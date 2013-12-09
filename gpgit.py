@@ -72,16 +72,13 @@ class PlainTextMessage(Message):
 		if self.is_encrypted() or self.is_signed():
 			return
 		
-		if self._message.get_content_type() == "text/plain":
-			self._message.set_payload(gpg.encrypt(self.__content, keys))
-		else:
-			message = email.message.Message()
-			message.set_type(self._message.get_content_type())
-			message.set_charset(self._message.get_content_charset())
-			message.set_payload(self._message.get_payload())
-			set_header(message, "Content-Transfer-Encoding", self._message.get("Content-Transfer-Encoding"))
-			set_header(message, "MIME-Version", None)
-			self._mime_encrypt(message.as_string(), gpg, keys)
+		payload = email.message.Message()
+		payload.set_type(self._message.get_content_type())
+		payload.set_charset(self._message.get_content_charset())
+		payload.set_payload(self._message.get_payload())
+		set_header(payload, "Content-Transfer-Encoding", self._message.get("Content-Transfer-Encoding"))
+		set_header(payload, "MIME-Version", None)
+		self._mime_encrypt(payload.as_string(), gpg, keys)
 	
 class MimeMessage(Message):
 	def __init__(self, message):
@@ -108,7 +105,6 @@ gpg = GPG()
 message = sys.stdin.read()
 message = email.message_from_string(message)
 recipients = sys.argv[1:]
-
 
 if message.is_multipart():
 	message = MimeMessage(message)
