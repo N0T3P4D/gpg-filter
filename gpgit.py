@@ -6,6 +6,7 @@ import re
 from pyme.core import Data, Context
 from email.mime.base import MIMEBase
 from email.mime.application import MIMEApplication
+import email.encoders
 
 class GPG:
 	def __init__(self):
@@ -60,7 +61,7 @@ class Message:
 class PlainTextMessage(Message):
 	def __init__(self, message):
 		Message.__init__(self, message)
-		self.__content = message.get_payload()
+		self.__content = message.get_payload(decode=True)
 		
 	def is_encrypted(self):
 		return re.search("-----BEGIN PGP MESSAGE-----", self.__content, flags = re.MULTILINE) is not None
@@ -71,14 +72,18 @@ class PlainTextMessage(Message):
 	def encrypt(self, gpg, keys):
 		if self.is_encrypted() or self.is_signed():
 			return
-		
-		payload = email.message.Message()
-		payload.set_type(self._message.get_content_type())
-		payload.set_charset(self._message.get_content_charset())
-		payload.set_payload(self._message.get_payload())
-		set_header(payload, "Content-Transfer-Encoding", self._message.get("Content-Transfer-Encoding"))
-		set_header(payload, "MIME-Version", None)
-		self._mime_encrypt(payload.as_string(), gpg, keys)
+
+		if self._message.get_content_type() == "text/plain":
+			self._message.set_payload(gpg.encrypt(self.__content, keys))
+			set_header(self._message, "Content-Transfer-Encoding", None)
+		else:
+			payload = email.message.Message()
+			payload.set_type(self._message.get_content_type())
+			payload.set_charset(self._message.get_content_charset())
+			payload.set_payload(self._message.get_payload())
+			set_header(payload, "Content-Transfer-Encoding", self._message.get("Content-Transfer-Encoding"))
+			set_header(payload, "MIME-Version", None)
+			self._mime_encrypt(payload.as_string(), gpg, keys)		
 	
 class MimeMessage(Message):
 	def __init__(self, message):
@@ -105,6 +110,7 @@ gpg = GPG()
 message = sys.stdin.read()
 message = email.message_from_string(message)
 recipients = sys.argv[1:]
+
 
 if message.is_multipart():
 	message = MimeMessage(message)
