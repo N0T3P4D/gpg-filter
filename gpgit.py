@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# GPGIt : Automatically GPG-encrypt incoming email
+# Aeris <aeris@imirhil.fr>
+# Licensed under AGPLv3 or later
 
 import email
 import sys, os
@@ -45,6 +48,7 @@ class Message:
 		self._message.set_param("protocol", "application/pgp-encrypted");
 		self._message.del_param("micalg");
 		set_header(self._message, "Content-Transfer-Encoding", None)
+		set_header(self._message, "X-GPGIt", "true")
 		self._message.preamble = ""
 		self._message.set_payload(None)
 
@@ -69,6 +73,15 @@ class PlainTextMessage(Message):
 	def is_signed(self):
 		return re.search("-----BEGIN PGP SIGNED MESSAGE-----", self.__content, flags = re.MULTILINE) is not None
 
+	def encode(self):
+		encoding = self._message["Content-Transfer-Encoding"]
+		if encoding is "quoted-printable":
+			return email.encoders.encode_quopri(self._message)
+		elif encoding in ["7bit", "8bit"]:
+			return email.encoders.encode_7or8bit(self._message)
+		elif encoding is "base64":
+			return email.encoders.encode_base64(self._message)
+
 	def encrypt(self, gpg, keys):
 		if self.is_encrypted() or self.is_signed():
 			return
@@ -76,6 +89,7 @@ class PlainTextMessage(Message):
 		if self._message.get_content_type() == "text/plain":
 			self._message.set_payload(gpg.encrypt(self.__content, keys))
 			set_header(self._message, "Content-Transfer-Encoding", None)
+			set_header(self._message, "X-GPGIt", "true")
 		else:
 			payload = email.message.Message()
 			payload.set_type(self._message.get_content_type())
@@ -110,7 +124,6 @@ gpg = GPG()
 message = sys.stdin.read()
 message = email.message_from_string(message)
 recipients = sys.argv[1:]
-
 
 if message.is_multipart():
 	message = MimeMessage(message)
