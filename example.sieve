@@ -1,11 +1,11 @@
-require ["fileinto", "copy", "vnd.dovecot.pipe", "variables"];
+require ["fileinto", "copy", "vnd.dovecot.pipe", "variables", "envelope"];
 
 if header :contains "X-Spam-Flag" "YES" {
   fileinto "Spam";
   stop;
 }
 
-if address :matches "To" "X@Y.Z" {
+if envelope :matches "To" ["X@Y.Z", "D@E.F"] {
   if header :contains "X-GPGIt-Wrapped" "true" {
       fileinto "wrapped";
     } elsif header :contains "X-GPGIt" "true" {
