@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # GPGIt : Automatically GPG-encrypt incoming email
 # Aeris <aeris@imirhil.fr>
 # Licensed under AGPLv3 or later
@@ -7,15 +7,15 @@ from __future__ import print_function
 import email
 import sys, os
 import re
-import pyme
-from pyme.core import Data, Context
+import gpg
+from gpg.core import Data, Context
 from email.mime.base import MIMEBase
 from email.mime.application import MIMEApplication
 import email.encoders
 
 class GPG:
     def __init__(self):
-        pyme.core.check_version(None)
+        gpg.core.check_version(None)
         self.__context = Context()
         self.__context.set_armor(1)
 
@@ -186,7 +186,7 @@ if __name__ == "__main__":
         try:
             m = WrapperMessage(message, message_)
             res = m.decrypt(gpg)
-            print(res,end="")
+            print(res.decode("utf-8"),end="")
         except:
             print(message_,end="")
     else:
