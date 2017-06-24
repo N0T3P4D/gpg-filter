@@ -4,22 +4,22 @@ import email
 import gpgit
 import sys
 import copy
-import io
 
 SOCKET="/var/run/dovecot/lmtp"
 
 destination = sys.argv[1]
 recipients = sys.argv[2:]
 
-lmtp = smtplib.LMTP(host=SOCKET)
-msg = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8').read()
+blob = sys.stdin.buffer.read()
+msg_parsed = email.message_from_bytes(blob)
 
-msg_parsed = email.message_from_string(msg)
+lmtp = smtplib.LMTP(host=SOCKET)
+        
 sender = email.utils.parseaddr(msg_parsed["From"])[1]
 
-res = str(gpgit.wrap_message(msg, copy.deepcopy(msg_parsed), recipients))
+res = str(gpgit.wrap_message(blob, copy.deepcopy(msg_parsed), recipients))
 lmtp.sendmail(sender, [destination], res)
 
-res = str(gpgit.encrypt_message(msg, copy.deepcopy(msg_parsed), recipients))
+res = str(gpgit.encrypt_message(blob, copy.deepcopy(msg_parsed), recipients))
 lmtp.sendmail(sender, [destination], res)
 lmtp.quit()
